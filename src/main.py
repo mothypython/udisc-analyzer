@@ -26,7 +26,6 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.plot_widget = None
 
         self.btn_load_scorecard.clicked.connect(self.get_scorecard)
-        self.btn_plot.clicked.connect(self.plot_mean)
         self.list_players.itemClicked.connect(self.update_lists)
         self.list_courses.itemClicked.connect(self.update_lists)
         self.list_layouts.itemClicked.connect(self.update_lists)
@@ -64,6 +63,8 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
 
         self.list_layouts_update(new_course)
 
+        self.plot_mean()
+
     def list_players_update(self):
         if len(self.list_players.selectedItems()) == 0:
             self.scores = self.scorecard.loc[self.scorecard['PlayerName'] != 'Par']
@@ -80,9 +81,9 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.courses = self.scorecard.loc[self.scorecard['PlayerName'] == 'Par'].drop_duplicates(
             subset=['CourseName', 'LayoutName'], keep='first')
 
-        self.courses = self.scorecard.loc[self.scorecard['PlayerName'] == self.list_players.currentItem().text()]
+        courses_by_player = self.scorecard.loc[self.scorecard['PlayerName'] == self.list_players.currentItem().text()]
 
-        courses_only = sorted(self.courses['CourseName'].unique())
+        courses_only = sorted(courses_by_player['CourseName'].unique())
 
         if clear:
             self.list_courses.clear()
@@ -116,9 +117,19 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
                   (self.courses['CourseName'] == course) & (self.courses['LayoutName'] == layout)].select_dtypes(
             include=[np.number]).iloc[0, 2:]
 
+        print(self.courses)
+
         self.ax_a.cla()
         par.plot(kind='line', ax=self.ax_a)
         result.plot(kind='line', ax=self.ax_a)
+
+        self.ax_b.cla()
+        par.plot(kind='line', ax=self.ax_b)
+        result.plot(kind='line', ax=self.ax_b)
+
+        self.ax_c.cla()
+        par.plot(kind='line', ax=self.ax_c)
+        result.plot(kind='line', ax=self.ax_c)
 
         if not self.plot_widget:
             self.plot_widget = FigureCanvas(self.fig_a)
@@ -126,8 +137,24 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
             lay = QtWidgets.QVBoxLayout(self.widget_plot_a)
             lay.setContentsMargins(0, 0, 0, 0)
             lay.addWidget(self.plot_widget)
+
+
+            plot_widget_b = FigureCanvas(self.fig_b)
+
+            lay = QtWidgets.QVBoxLayout(self.widget_plot_b)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.addWidget(plot_widget_b)
+
+            plot_widget_c = FigureCanvas(self.fig_c)
+
+            lay = QtWidgets.QVBoxLayout(self.widget_plot_c)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.addWidget(plot_widget_c)
+
         else:
             self.fig_a.canvas.draw_idle()
+            self.fig_b.canvas.draw_idle()
+            self.fig_c.canvas.draw_idle()
 
 
 if __name__ == '__main__':
