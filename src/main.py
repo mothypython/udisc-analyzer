@@ -66,7 +66,7 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
 
         self.text_scorecard.setText(fname[0])
 
-        self.scorecard = pd.read_csv(fname[0])
+        self.scorecard = pd.read_csv(fname[0]).replace(0, np.nan)
 
         self.list_players_update()
         self.list_courses_update(True)
@@ -170,6 +170,12 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.axes[i].cla()
         par.plot(kind='line', ax=self.axes[i], style='--', alpha=0.3, label='Par')
         result.plot(kind='line', ax=self.axes[i], label='Mean')
+
+        #self.axes[i].xticks(rotation=70)
+        self.figs[i].suptitle('Mean score per hole', fontsize=10)
+        self.axes[i].set_xlabel('Hole', fontsize=8)
+        self.axes[i].set_ylabel('Mean throws', fontsize=8)
+        self.axes[i].set_ylim([0, 10])
         self.axes[i].legend(loc="upper left")
 
         if not self.widget_plots[i]:
@@ -190,6 +196,12 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         df.reset_index(drop=True, inplace=True)
         df.index += 1
         df['+/-'].plot(kind='line', ax=self.axes[i])
+
+        self.figs[i].suptitle('All rounds', fontsize=10)
+        self.axes[i].set_xlabel('Round', fontsize=8)
+        self.axes[i].set_ylabel('Score (+/-)', fontsize=8)
+        self.axes[i].set_ylim([-10, self.scores['+/-'].max()])
+        #self.axes[i].legend(loc="upper left")
 
         if not self.widget_plots[i]:
             self.widget_plots[i] = FigureCanvas(self.figs[i])
@@ -214,6 +226,12 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.axes[i].cla()
         par.plot(kind='line', ax=self.axes[i], style='--', alpha=0.3, label='Par')
         best.plot(kind='line', ax=self.axes[i], label='Best')
+
+        #self.axes[i].xticks(rotation=70)
+        self.figs[i].suptitle('Theoretically best round', fontsize=10)
+        self.axes[i].set_xlabel('Hole', fontsize=8)
+        self.axes[i].set_ylabel('Throws', fontsize=8)
+        self.axes[i].set_ylim([0, 10])
         self.axes[i].legend(loc="upper left")
 
         if not self.widget_plots[i]:
