@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt5.QtGui import QIcon
-
+from datetime import datetime
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
 from PyQt5 import QtWidgets, uic, QtCore
@@ -14,6 +14,8 @@ MEAN_PLOT = 'Mean hole scores'
 ROUND_PLOT = 'Round scores'
 BEST_PLOT = 'Theoretically best round'
 plots = [MEAN_PLOT, ROUND_PLOT, BEST_PLOT]
+
+epoch = datetime(2021, 1, 1, 0, 0, 0)
 
 
 class UDiscAnalyzer(QtWidgets.QMainWindow):
@@ -26,7 +28,7 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.courses = None
         self.scores = None
         self.scorecard = None
-
+        self.show_numbers=False
         self.player = None
         self.course = None
         self.course_layout = None
@@ -44,6 +46,7 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.combobox_plot_c.setCurrentIndex(2)
 
         self.btn_load_scorecard.clicked.connect(self.get_scorecard)
+        self.btn_change_show_numbers.clicked.connect(self.change_show_numbers)
         self.list_players.itemClicked.connect(self.update_lists)
         self.list_courses.itemClicked.connect(self.update_lists)
         self.list_layouts.itemClicked.connect(self.update_lists)
@@ -53,7 +56,6 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         fig_c, ax_c = plt.subplots()
         self.figs = [fig_a, fig_b, fig_c]
         self.axes = [ax_a, ax_b, ax_c]
-
 
         self.show()
 
@@ -72,6 +74,10 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.list_courses_update(True)
         self.list_layouts_update(True)
 
+        self.update_plots()
+
+    def change_show_numbers(self):
+        self.show_numbers = not self.show_numbers
         self.update_plots()
 
     def update_lists(self):
@@ -109,7 +115,8 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
 
         courses_by_player = self.scorecard.loc[self.scorecard['PlayerName'] == self.list_players.currentItem().text()]
 
-        courses_only = sorted(courses_by_player['CourseName'].unique(), reverse=True, key=lambda c: courses_by_player['CourseName'].value_counts()[c])
+        courses_only = sorted(courses_by_player['CourseName'].unique(), reverse=True,
+                              key=lambda c: courses_by_player['CourseName'].value_counts()[c])
 
         if clear:
             self.list_courses.clear()
@@ -119,12 +126,14 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.course = self.list_courses.currentItem().text()
 
     def list_layouts_update(self, clear):
-        #layouts = self.courses.loc[
+        # layouts = self.courses.loc[
         #    self.courses['CourseName'] == self.list_courses.currentItem().text(), 'LayoutName'].unique().tolist()
 
-        layouts_by_player = self.scorecard.loc[(self.scorecard['CourseName'] == self.course) & (self.scorecard['PlayerName'] == self.player)]
+        layouts_by_player = self.scorecard.loc[
+            (self.scorecard['CourseName'] == self.course) & (self.scorecard['PlayerName'] == self.player)]
 
-        layouts_only = sorted(layouts_by_player['LayoutName'].unique(), reverse=True, key=lambda l: layouts_by_player['LayoutName'].value_counts()[l])
+        layouts_only = sorted(layouts_by_player['LayoutName'].unique(), reverse=True,
+                              key=lambda l: layouts_by_player['LayoutName'].value_counts()[l])
 
         if clear:
             self.list_layouts.clear()
@@ -171,7 +180,15 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         par.plot(kind='line', ax=self.axes[i], style='--', alpha=0.3, label='Par')
         result.plot(kind='line', ax=self.axes[i], label='Mean')
 
-        #self.axes[i].xticks(rotation=70)
+        if self.show_numbers:
+            for j, txt in enumerate(list(par)):
+                self.axes[i].annotate(str(int(txt)), (j, txt), color='tab:blue', horizontalalignment='center',
+                                      verticalalignment='top',alpha=0.3)
+            for j, txt in enumerate(list(result)):
+                self.axes[i].annotate(str(int(txt)), (j, txt), color='tab:orange', horizontalalignment='center',
+                                      verticalalignment='bottom')
+
+        # self.axes[i].xticks(rotation=70)
         self.figs[i].suptitle('Mean score per hole', fontsize=10)
         self.axes[i].set_xlabel('Hole', fontsize=8)
         self.axes[i].set_ylabel('Mean throws', fontsize=8)
@@ -230,6 +247,8 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         df = df.iloc[::-1]
         df.reset_index(drop=True, inplace=True)
         df.index += 1
+        # dates=list(df['Date'])
+        # days=[int((datetime.strptime(date, '%Y-%m-%d %H:%M')-epoch).total_seconds()/3600/24) for date in dates]
         df['+/-'].plot(kind='line', ax=self.axes[i], label='Score')
 
 
@@ -238,10 +257,21 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         self.axes[i].plot(list(range(1, len(handicap_list) + 1)), handicap_list, '-o', markersize=3,
                           label='Handicap after round')
 
+        if self.show_numbers:
+            for j, txt in enumerate(list(df['+/-'])):
+                self.axes[i].annotate(str(int(txt)), (j + 1, txt), color='tab:blue', horizontalalignment='center',
+                                      verticalalignment='bottom')
+            for j, txt in enumerate(handicap_list):
+                self.axes[i].annotate(str(int(txt)), (j + 1, txt), color='tab:orange', horizontalalignment='center',
+                                      verticalalignment='top')
+
+        # self.axes[i].plot(days, list(df['+/-']),'-o',markersize=3)
+
         self.figs[i].suptitle('All rounds', fontsize=10)
         self.axes[i].set_xlabel('Round', fontsize=8)
         self.axes[i].set_ylabel('Score (+/-)', fontsize=8)
         self.axes[i].set_ylim([-10, self.scores['+/-'].max()])
+        # self.axes[i].set_xlim([0, 365])
         self.axes[i].legend(loc="upper left")
 
         if not self.widget_plots[i]:
@@ -268,7 +298,15 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         par.plot(kind='line', ax=self.axes[i], style='--', alpha=0.3, label='Par')
         best.plot(kind='line', ax=self.axes[i], label='Best')
 
-        #self.axes[i].xticks(rotation=70)
+        if self.show_numbers:
+            for j, txt in enumerate(list(par)):
+                self.axes[i].annotate(str(int(txt)), (j, txt), color='tab:blue', horizontalalignment='center',
+                                      verticalalignment='top',alpha=0.3)
+            for j, txt in enumerate(list(best)):
+                self.axes[i].annotate(str(int(txt)), (j, txt), color='tab:orange', horizontalalignment='center',
+                                      verticalalignment='bottom')
+
+        # self.axes[i].xticks(rotation=70)
         self.figs[i].suptitle('Theoretically best round', fontsize=10)
         self.axes[i].set_xlabel('Hole', fontsize=8)
         self.axes[i].set_ylabel('Throws', fontsize=8)
@@ -283,7 +321,6 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
             lay.addWidget(self.widget_plots[i])
         else:
             self.figs[i].canvas.draw_idle()
-
 
 
 if __name__ == '__main__':

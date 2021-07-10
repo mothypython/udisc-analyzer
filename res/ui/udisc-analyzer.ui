@@ -74,6 +74,13 @@
       </property>
      </widget>
     </item>
+    <item row="0" column="1">
+     <widget class="QPushButton" name="btn_change_show_numbers">
+      <property name="text">
+       <string>Show numbers</string>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="0">
      <widget class="QLineEdit" name="text_scorecard">
       <property name="enabled">
