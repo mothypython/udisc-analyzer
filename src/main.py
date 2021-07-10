@@ -187,6 +187,41 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         else:
             self.figs[i].canvas.draw_idle()
 
+    def handicap(self, scores):
+        scores.sort()
+        n = len(scores)
+        if n < 6:
+            handicap = scores[0]
+        elif n < 9:
+            handicap = np.mean(scores[:2])
+        elif n < 12:
+            handicap = np.mean(scores[:3])
+        elif n < 15:
+            handicap = np.mean(scores[:4])
+        elif n < 17:
+            handicap = np.mean(scores[:5])
+        elif n < 19:
+            handicap = np.mean(scores[:6])
+        elif n == 19:
+            handicap = np.mean(scores[:7])
+        else:
+            handicap = np.mean(scores[:8])
+
+        if n < 4:
+            handicap -= 2
+        elif n == 4:
+            handicap -= 1
+        elif n == 6:
+            handicap -= 1
+
+        return handicap
+
+    def handicap_list(self, scores):
+        handicap_list = []
+        for i, _ in enumerate(scores):
+            handicap_list.append(self.handicap(scores[:i + 1]))
+        return handicap_list
+
     def plot_rounds(self, i):
         df = self.scores.loc[(self.scores['PlayerName'] == self.player) & (self.scores['CourseName'] == self.course) & (
                 self.scores['LayoutName'] == self.course_layout)]
@@ -195,13 +230,19 @@ class UDiscAnalyzer(QtWidgets.QMainWindow):
         df = df.iloc[::-1]
         df.reset_index(drop=True, inplace=True)
         df.index += 1
-        df['+/-'].plot(kind='line', ax=self.axes[i])
+        df['+/-'].plot(kind='line', ax=self.axes[i], label='Score')
+
+
+
+        handicap_list = self.handicap_list(list(df['+/-']))
+        self.axes[i].plot(list(range(1, len(handicap_list) + 1)), handicap_list, '-o', markersize=3,
+                          label='Handicap after round')
 
         self.figs[i].suptitle('All rounds', fontsize=10)
         self.axes[i].set_xlabel('Round', fontsize=8)
         self.axes[i].set_ylabel('Score (+/-)', fontsize=8)
         self.axes[i].set_ylim([-10, self.scores['+/-'].max()])
-        #self.axes[i].legend(loc="upper left")
+        self.axes[i].legend(loc="upper left")
 
         if not self.widget_plots[i]:
             self.widget_plots[i] = FigureCanvas(self.figs[i])
